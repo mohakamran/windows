@@ -13,6 +13,8 @@ It demonstrates what’s possible using plain HTML, Tailwind CSS, and vanilla Ja
 
 ---
 
+**🔗 Live Preview:** [Click to Open Windows Cloner](https://mohakamran.github.io/windows/)
+
 ## 📖 Description
 
 This project authentically recreates the Windows 11 desktop UI in the browser:
