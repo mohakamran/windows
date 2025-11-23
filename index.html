@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows 11 Clone</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --win-blue: #0078d4;
+            --glass-bg: rgba(243, 243, 243, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --taskbar-bg: rgba(243, 243, 243, 0.85);
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            overflow: hidden;
+            user-select: none;
+            background-color: #000;
+        }
+
+        /* Wallpaper */
+        #wallpaper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://upload.wikimedia.org/wikipedia/en/2/27/Bliss_%28Windows_XP%29.png'); 
+            background-size: cover;
+            background-position: center;
+            z-index: 0;
+            transition: all 0.3s ease;
+        }
+
+        /* Desktop Icons */
+        .desktop-icon {
+            width: 86px;
+            height: 96px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 4px;
+            border-radius: 4px;
+            cursor: default;
+            transition: background 0.1s;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+        }
+        .desktop-icon:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .desktop-icon:active, .desktop-icon.selected {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .desktop-icon img, .desktop-icon i {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 4px;
+            font-size: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Taskbar */
+        #taskbar {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 48px;
+            background: var(--taskbar-bg);
+            backdrop-filter: blur(20px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            border-top: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .taskbar-icon {
+            width: 40px;
+            height: 40px;
+            margin: 0 4px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .taskbar-icon:hover {
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+        .taskbar-icon:active {
+            transform: scale(0.95);
+        }
+        .taskbar-icon.open::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            width: 6px;
+            height: 3px;
+            background: var(--win-blue);
+            border-radius: 2px;
+            transition: width 0.2s;
+        }
+        .taskbar-icon.open:hover::after {
+            width: 16px;
+        }
+
+        /* Start Menu */
+        #start-menu {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            width: 640px;
+            height: 600px;
+            background: rgba(243, 243, 243, 0.85);
+            backdrop-filter: blur(20px);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.4);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.2s cubic-bezier(0.19, 1, 0.22, 1);
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+        }
+        #start-menu.active {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+            pointer-events: all;
+        }
+
+        /* Windows */
+        .window {
+            position: absolute;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 300px;
+            min-height: 200px;
+            animation: popIn 0.2s cubic-bezier(0.19, 1, 0.22, 1);
+            resize: both;
+        }
+        @keyframes popIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        .title-bar {
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 0 0 12px;
+            background: #f3f3f3;
+            user-select: none;
+        }
+        .title-bar-controls div {
+            width: 46px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .title-bar-controls div:hover { background: #e5e5e5; }
+        .title-bar-controls .close-btn:hover { background: #e81123; color: white; }
+
+        .window-content {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        /* Specific App Styles */
+        /* Calculator */
+        .calc-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2px;
+            height: 100%;
+            background: #f9f9f9;
+        }
+        .calc-btn {
+            background: #fff;
+            border: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+        .calc-btn:hover { background: #f0f0f0; }
+        .calc-btn.accent { background: #0067c0; color: white; }
+        .calc-btn.accent:hover { background: #005da0; }
+
+        /* Paint */
+        .paint-toolbar {
+            height: 100px;
+            border-bottom: 1px solid #ddd;
+            background: #f5f6f7;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            gap: 10px;
+        }
+        .color-swatch {
+            width: 24px;
+            height: 24px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+        }
+        .color-swatch.active { transform: scale(1.1); border: 2px solid #000; }
+
+        /* Chrome */
+        .chrome-nav {
+            height: 40px;
+            background: #f3f3f3;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            gap: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .url-bar {
+            flex: 1;
+            height: 28px;
+            background: #fff;
+            border-radius: 14px;
+            border: 1px solid #ddd;
+            padding: 0 15px;
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+
+        /* Word */
+        .word-ribbon {
+            background: #f3f3f3;
+            border-bottom: 1px solid #ddd;
+            padding: 8px;
+            display: flex;
+            gap: 10px;
+        }
+        .word-page {
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin: 20px auto;
+            padding: 25mm;
+            outline: none;
+        }
+
+        /* Context Menu */
+        #context-menu {
+            position: absolute;
+            width: 200px;
+            background: rgba(245, 245, 245, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 6px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            padding: 4px 0;
+            z-index: 9999;
+            display: none;
+        }
+        .context-item {
+            padding: 8px 12px;
+            font-size: 13px;
+            cursor: default;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .context-item:hover {
+            background: rgba(255,255,255,0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Wallpaper -->
+    <div id="wallpaper"></div>
+
+    <!-- Desktop Icons Area -->
+    <div class="absolute top-0 left-0 h-[calc(100%-48px)] w-full p-2 flex flex-col flex-wrap content-start gap-1" id="desktop-area">
+        <!-- Icons generated by JS -->
+    </div>
+
+    <!-- Start Menu -->
+    <div id="start-menu">
+        <div class="mb-4">
+            <input type="text" placeholder="Type here to search" class="w-full bg-white bg-opacity-50 p-2 rounded border border-gray-300 focus:outline-none focus:border-blue-500">
+        </div>
+        <div class="text-sm font-semibold mb-2 ml-4">Pinned</div>
+        <div class="grid grid-cols-6 gap-4 px-4 mb-8">
+            <!-- Pinned icons generated by JS -->
+        </div>
+        <div class="text-sm font-semibold mb-2 ml-4">Recommended</div>
+        <div class="flex-1 px-4">
+            <div class="flex items-center gap-3 p-2 hover:bg-white hover:bg-opacity-40 rounded cursor-pointer">
+                <i class="fas fa-file-word text-blue-700 text-xl"></i>
+                <div>
+                    <div class="text-xs font-semibold">Resume.docx</div>
+                    <div class="text-[10px] text-gray-500">2 hours ago</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 p-2 hover:bg-white hover:bg-opacity-40 rounded cursor-pointer">
+                <i class="fas fa-image text-purple-600 text-xl"></i>
+                <div>
+                    <div class="text-xs font-semibold">Screenshot_1.png</div>
+                    <div class="text-[10px] text-gray-500">Yesterday</div>
+                </div>
+            </div>
+        </div>
+        <div class="h-12 border-t border-gray-300 mt-auto flex items-center justify-between px-6 bg-black bg-opacity-5 -mx-6 -mb-6 rounded-b-lg">
+            <div class="flex items-center gap-2 cursor-pointer hover:bg-white hover:bg-opacity-50 p-1 rounded pr-3">
+                <div class="w-8 h-8 rounded-full bg-gray-400 flex items-center justify-center text-white">
+                    <i class="fas fa-user"></i>
+                </div>
+                <span class="text-xs font-semibold">User</span>
+            </div>
+            <div class="w-8 h-8 flex items-center justify-center hover:bg-white hover:bg-opacity-50 rounded cursor-pointer">
+                <i class="fas fa-power-off"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Taskbar -->
+    <div id="taskbar">
+        <!-- Start Button -->
+        <div class="taskbar-icon" onclick="toggleStartMenu()" title="Start">
+            <i class="fab fa-windows text-blue-500 text-xl"></i>
+        </div>
+        <!-- Default Pinned Apps -->
+        <div class="taskbar-icon" title="Search">
+            <i class="fas fa-search text-gray-600 text-lg"></i>
+        </div>
+        <div class="taskbar-icon" title="Task View">
+            <i class="fas fa-clone text-gray-600 text-lg"></i>
+        </div>
+        <div class="taskbar-icon" title="Widgets">
+            <i class="fas fa-columns text-blue-400 text-lg"></i>
+        </div>
+        
+        <!-- App Icons Area -->
+        <div id="taskbar-apps" class="flex"></div>
+
+        <!-- System Tray -->
+        <div class="absolute right-0 h-full flex items-center px-2 gap-2">
+            <div class="h-full flex items-center px-1 hover:bg-white hover:bg-opacity-50 rounded cursor-pointer">
+                <i class="fas fa-chevron-up text-xs mr-2"></i>
+            </div>
+            <div class="h-full flex items-center px-1 hover:bg-white hover:bg-opacity-50 rounded cursor-pointer gap-2">
+                <i class="fas fa-wifi text-xs"></i>
+                <i class="fas fa-volume-up text-xs"></i>
+                <i class="fas fa-battery-full text-xs"></i>
+            </div>
+            <div class="h-full flex flex-col justify-center items-end px-2 hover:bg-white hover:bg-opacity-50 rounded cursor-pointer w-20">
+                <div id="clock-time" class="text-xs font-semibold">12:00 PM</div>
+                <div id="clock-date" class="text-[10px]">11/23/2025</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu">
+        <div class="context-item"><i class="fas fa-eye w-4 text-gray-500"></i> View</div>
+        <div class="context-item"><i class="fas fa-sort-amount-down w-4 text-gray-500"></i> Sort by</div>
+        <div class="context-item"><i class="fas fa-sync-alt w-4 text-gray-500"></i> Refresh</div>
+        <div class="h-[1px] bg-gray-300 my-1 mx-2"></div>
+        <div class="context-item"><i class="fas fa-plus w-4 text-gray-500"></i> New</div>
+        <div class="h-[1px] bg-gray-300 my-1 mx-2"></div>
+        <div class="context-item"><i class="fas fa-tv w-4 text-gray-500"></i> Display settings</div>
+        <div class="context-item"><i class="fas fa-paint-brush w-4 text-gray-500"></i> Personalize</div>
+    </div>
+
+    <script>
+        // --- DATA & STATE ---
+        let zIndexCounter = 100;
+        const apps = {
+            word: {
+                id: 'word',
+                name: 'Word',
+                icon: '<i class="fas fa-file-word text-blue-700"></i>',
+                color: '#2b579a',
+                component: createWordApp
+            },
+            paint: {
+                id: 'paint',
+                name: 'Paint',
+                icon: '<i class="fas fa-palette text-purple-600"></i>',
+                color: '#7e22ce',
+                component: createPaintApp
+            },
+            chrome: {
+                id: 'chrome',
+                name: 'Chrome',
+                icon: '<i class="fab fa-chrome text-red-500"></i>', // Simplified icon
+                color: '#ea4335',
+                component: createChromeApp
+            },
+            calculator: {
+                id: 'calculator',
+                name: 'Calculator',
+                icon: '<i class="fas fa-calculator text-gray-700"></i>',
+                color: '#333',
+                component: createCalculatorApp
+            }
+        };
+
+        const activeWindows = {}; // Stores references to open windows
+
+        // --- INIT ---
+        function init() {
+            renderDesktopIcons();
+            renderStartMenuIcons();
+            startClock();
+            
+            // Context Menu Handler
+            document.addEventListener('contextmenu', e => {
+                e.preventDefault();
+                const menu = document.getElementById('context-menu');
+                menu.style.display = 'block';
+                menu.style.left = e.pageX + 'px';
+                menu.style.top = e.pageY + 'px';
+            });
+            document.addEventListener('click', () => {
+                document.getElementById('context-menu').style.display = 'none';
+                const startMenu = document.getElementById('start-menu');
+                if (!startMenu.contains(event.target) && !event.target.closest('.taskbar-icon')) {
+                    startMenu.classList.remove('active');
+                }
+            });
+        }
+
+        // --- COMPONENTS ---
+
+        function renderDesktopIcons() {
+            const area = document.getElementById('desktop-area');
+            Object.values(apps).forEach(app => {
+                const el = document.createElement('div');
+                el.className = 'desktop-icon';
+                el.innerHTML = `${app.icon}<span class="text-xs text-center mt-1 text-white drop-shadow-md">${app.name}</span>`;
+                el.ondblclick = () => openApp(app.id);
+                // Touch support for mobile opening (double tap logic simplified to single tap for web ease or long press)
+                // We'll stick to double click for "Desktop" feel, but add single click selection
+                el.onclick = (e) => {
+                    e.stopPropagation();
+                    document.querySelectorAll('.desktop-icon').forEach(i => i.classList.remove('selected'));
+                    el.classList.add('selected');
+                }
+                area.appendChild(el);
+            });
+        }
+
+        function renderStartMenuIcons() {
+            const grid = document.querySelector('#start-menu .grid');
+            Object.values(apps).forEach(app => {
+                const el = document.createElement('div');
+                el.className = 'flex flex-col items-center justify-center p-2 hover:bg-white hover:bg-opacity-50 rounded cursor-pointer';
+                el.innerHTML = `<div class="text-2xl mb-1">${app.icon}</div><div class="text-[10px]">${app.name}</div>`;
+                el.onclick = () => {
+                    openApp(app.id);
+                    toggleStartMenu();
+                };
+                grid.appendChild(el);
+            });
+        }
+
+        function toggleStartMenu() {
+            document.getElementById('start-menu').classList.toggle('active');
+        }
+
+        function startClock() {
+            function update() {
+                const now = new Date();
+                document.getElementById('clock-time').innerText = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                document.getElementById('clock-date').innerText = now.toLocaleDateString();
+            }
+            update();
+            setInterval(update, 1000);
+        }
+
+        // --- WINDOW SYSTEM ---
+
+        function openApp(appId) {
+            // Bring to front if already open
+            if (activeWindows[appId]) {
+                focusWindow(appId);
+                return;
+            }
+
+            const app = apps[appId];
+            
+            // Create Window HTML
+            const win = document.createElement('div');
+            win.className = 'window';
+            win.id = `win-${appId}`;
+            win.style.left = (100 + Object.keys(activeWindows).length * 30) + 'px';
+            win.style.top = (50 + Object.keys(activeWindows).length * 30) + 'px';
+            win.style.zIndex = ++zIndexCounter;
+            
+            // Size defaults based on app
+            if (appId === 'calculator') {
+                win.style.width = '320px';
+                win.style.height = '480px';
+            } else if (appId === 'paint') {
+                win.style.width = '800px';
+                win.style.height = '600px';
+            } else {
+                win.style.width = '800px';
+                win.style.height = '600px';
+            }
+
+            win.innerHTML = `
+                <div class="title-bar" onmousedown="startDrag(event, '${appId}')">
+                    <div class="flex items-center gap-2 text-xs">
+                        ${app.icon} <span>${app.name}</span>
+                    </div>
+                    <div class="title-bar-controls flex h-full">
+                        <div onclick="minimizeWindow('${appId}')"><i class="fas fa-minus text-[10px]"></i></div>
+                        <div onclick="maximizeWindow('${appId}')"><i class="far fa-square text-[10px]"></i></div>
+                        <div class="close-btn" onclick="closeApp('${appId}')"><i class="fas fa-times"></i></div>
+                    </div>
+                </div>
+                <div class="window-content relative"></div>
+            `;
+            
+            // Append Content
+            const contentArea = win.querySelector('.window-content');
+            contentArea.appendChild(app.component());
+
+            // Add to DOM
+            document.body.appendChild(win);
+            activeWindows[appId] = win;
+
+            // Add Taskbar Item
+            const taskbarItem = document.createElement('div');
+            taskbarItem.className = 'taskbar-icon open';
+            taskbarItem.id = `taskbar-${appId}`;
+            taskbarItem.innerHTML = app.icon;
+            taskbarItem.onclick = () => {
+                if (win.style.display === 'none') {
+                    win.style.display = 'flex';
+                    focusWindow(appId);
+                } else if (parseInt(win.style.zIndex) === zIndexCounter) {
+                    win.style.display = 'none'; // Minimize if active
+                } else {
+                    focusWindow(appId);
+                }
+            };
+            document.getElementById('taskbar-apps').appendChild(taskbarItem);
+
+            focusWindow(appId);
+            
+            // Bring to front on click
+            win.onmousedown = () => focusWindow(appId);
+        }
+
+        function closeApp(appId) {
+            const win = document.getElementById(`win-${appId}`);
+            if (win) win.remove();
+            const tbItem = document.getElementById(`taskbar-${appId}`);
+            if (tbItem) tbItem.remove();
+            delete activeWindows[appId];
+        }
+
+        function minimizeWindow(appId) {
+            const win = document.getElementById(`win-${appId}`);
+            win.style.display = 'none';
+        }
+
+        function maximizeWindow(appId) {
+            const win = document.getElementById(`win-${appId}`);
+            if (win.dataset.maximized) {
+                win.style.top = win.dataset.oldTop;
+                win.style.left = win.dataset.oldLeft;
+                win.style.width = win.dataset.oldWidth;
+                win.style.height = win.dataset.oldHeight;
+                delete win.dataset.maximized;
+            } else {
+                win.dataset.oldTop = win.style.top;
+                win.dataset.oldLeft = win.style.left;
+                win.dataset.oldWidth = win.style.width;
+                win.dataset.oldHeight = win.style.height;
+                
+                win.style.top = '0';
+                win.style.left = '0';
+                win.style.width = '100%';
+                win.style.height = 'calc(100% - 48px)'; // Subtract taskbar
+                win.dataset.maximized = "true";
+            }
+        }
+
+        function focusWindow(appId) {
+            const win = document.getElementById(`win-${appId}`);
+            if (win) {
+                win.style.zIndex = ++zIndexCounter;
+                win.style.display = 'flex';
+            }
+        }
+
+        // --- DRAG LOGIC ---
+        let isDragging = false;
+        let dragOffset = { x: 0, y: 0 };
+        let currentDragWin = null;
+
+        function startDrag(e, appId) {
+            if (e.target.closest('.title-bar-controls')) return; // Don't drag if clicking buttons
+            
+            // Maximize check handled by double click usually, skipping for simplicity or adding later
+            const win = document.getElementById(`win-${appId}`);
+            if (win.dataset.maximized) return; // Don't drag maximized
+
+            isDragging = true;
+            currentDragWin = win;
+            
+            const rect = win.getBoundingClientRect();
+            dragOffset.x = e.clientX - rect.left;
+            dragOffset.y = e.clientY - rect.top;
+            
+            focusWindow(appId);
+        }
+
+        document.addEventListener('mousemove', e => {
+            if (isDragging && currentDragWin) {
+                // Prevent dragging offscreen too much
+                const y = Math.max(0, e.clientY - dragOffset.y); 
+                currentDragWin.style.left = (e.clientX - dragOffset.x) + 'px';
+                currentDragWin.style.top = y + 'px';
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            currentDragWin = null;
+        });
+
+        // --- APP CONTENT GENERATORS ---
+
+        function createWordApp() {
+            const container = document.createElement('div');
+            container.className = 'h-full flex flex-col bg-[#f3f3f3]';
+            container.innerHTML = `
+                <div class="bg-[#2b579a] text-white px-4 py-1 text-xs flex gap-4">
+                    <span>File</span><span>Home</span><span>Insert</span><span>Layout</span>
+                </div>
+                <div class="word-ribbon">
+                    <button class="p-1 hover:bg-gray-300 rounded w-8" onclick="document.execCommand('bold')"><i class="fas fa-bold"></i></button>
+                    <button class="p-1 hover:bg-gray-300 rounded w-8" onclick="document.execCommand('italic')"><i class="fas fa-italic"></i></button>
+                    <button class="p-1 hover:bg-gray-300 rounded w-8" onclick="document.execCommand('underline')"><i class="fas fa-underline"></i></button>
+                    <div class="w-[1px] h-6 bg-gray-400 mx-2"></div>
+                    <button class="p-1 hover:bg-gray-300 rounded w-8" onclick="document.execCommand('justifyLeft')"><i class="fas fa-align-left"></i></button>
+                    <button class="p-1 hover:bg-gray-300 rounded w-8" onclick="document.execCommand('justifyCenter')"><i class="fas fa-align-center"></i></button>
+                    <button class="p-1 hover:bg-gray-300 rounded w-8" onclick="document.execCommand('justifyRight')"><i class="fas fa-align-right"></i></button>
+                </div>
+                <div class="flex-1 overflow-auto bg-gray-200" onclick="this.querySelector('.word-page').focus()">
+                    <div class="word-page" contenteditable="true">
+                        <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">Document 1</h1>
+                        <p>Welcome to Windows 11 Clone Word!</p>
+                        <p>You can type, edit, and format text here.</p>
+                    </div>
+                </div>
+                <div class="h-6 bg-[#2b579a] text-white text-[10px] flex items-center px-2 gap-4">
+                    <span>Page 1 of 1</span>
+                    <span>32 words</span>
+                    <span class="ml-auto">100%</span>
+                </div>
+            `;
+            return container;
+        }
+
+        function createPaintApp() {
+            const container = document.createElement('div');
+            container.className = 'h-full flex flex-col';
+            container.innerHTML = `
+                <div class="bg-blue-50 text-xs px-2 py-1 border-b border-gray-200">
+                    <span>File</span> <span class="ml-2">View</span>
+                </div>
+                <div class="paint-toolbar">
+                    <div class="flex flex-col items-center gap-1 border-r pr-2">
+                        <div class="font-bold text-xs mb-1">Brushes</div>
+                        <i class="fas fa-paint-brush text-xl"></i>
+                    </div>
+                    <div class="flex flex-col items-center gap-1 border-r pr-2 px-2">
+                         <div class="font-bold text-xs mb-1">Size</div>
+                         <input type="range" min="1" max="20" value="5" class="w-20" id="paint-size">
+                    </div>
+                    <div class="flex flex-wrap gap-1 w-40" id="paint-colors">
+                        <!-- Colors injected here -->
+                    </div>
+                    <button onclick="clearPaint()" class="ml-auto px-3 py-1 bg-red-100 hover:bg-red-200 text-red-600 rounded text-xs">Clear</button>
+                </div>
+                <div class="flex-1 overflow-hidden bg-gray-200 relative cursor-crosshair">
+                    <canvas id="paint-canvas" class="bg-white shadow-lg absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></canvas>
+                </div>
+            `;
+            
+            // Logic must wait for append
+            setTimeout(() => initPaintLogic(container), 0);
+            return container;
+        }
+
+        function initPaintLogic(container) {
+            const canvas = container.querySelector('#paint-canvas');
+            const ctx = canvas.getContext('2d');
+            const colorsDiv = container.querySelector('#paint-colors');
+            const sizeInput = container.querySelector('#paint-size');
+            
+            // Set canvas size
+            canvas.width = 600;
+            canvas.height = 400;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0,0, canvas.width, canvas.height);
+
+            let painting = false;
+            let color = 'black';
+            let size = 5;
+
+            // Colors
+            const colors = ['#000000', '#7f7f7f', '#880015', '#ed1c24', '#ff7f27', '#fff200', '#22b14c', '#00a2e8', '#3f48cc', '#a349a4', '#ffffff', '#c3c3c3'];
+            colors.forEach(c => {
+                const sw = document.createElement('div');
+                sw.className = 'color-swatch';
+                sw.style.backgroundColor = c;
+                sw.onclick = () => {
+                    color = c;
+                    container.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+                    sw.classList.add('active');
+                };
+                if(c === '#000000') sw.classList.add('active');
+                colorsDiv.appendChild(sw);
+            });
+
+            sizeInput.oninput = (e) => size = e.target.value;
+            
+            window.clearPaint = () => {
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0,0, canvas.width, canvas.height);
+            };
+
+            function getPos(e) {
+                const rect = canvas.getBoundingClientRect();
+                return {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+            }
+
+            canvas.addEventListener('mousedown', (e) => {
+                painting = true;
+                const pos = getPos(e);
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+                ctx.strokeStyle = color;
+                ctx.lineWidth = size;
+            });
+
+            window.addEventListener('mouseup', () => {
+                if(painting) {
+                    ctx.closePath();
+                    painting = false;
+                }
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                if(!painting) return;
+                const pos = getPos(e);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+            });
+        }
+
+        function createChromeApp() {
+            const container = document.createElement('div');
+            container.className = 'h-full flex flex-col bg-white';
+            container.innerHTML = `
+                <div class="h-8 bg-[#dee1e6] flex items-end px-2 pt-2 gap-2">
+                    <div class="bg-white rounded-t-lg px-3 py-1 text-xs flex items-center gap-2 shadow w-40">
+                        <i class="fab fa-google text-xs"></i> New Tab <span class="ml-auto hover:bg-gray-200 rounded-full w-4 h-4 flex items-center justify-center">×</span>
+                    </div>
+                    <div class="w-4 h-4 flex items-center justify-center hover:bg-gray-300 rounded"><i class="fas fa-plus text-[10px]"></i></div>
+                </div>
+                <div class="chrome-nav">
+                    <div class="flex gap-2 text-gray-500">
+                        <i class="fas fa-arrow-left hover:text-black cursor-pointer"></i>
+                        <i class="fas fa-arrow-right hover:text-black cursor-pointer"></i>
+                        <i class="fas fa-redo hover:text-black cursor-pointer" onclick="document.getElementById('chrome-frame').src = document.getElementById('chrome-frame').src"></i>
+                    </div>
+                    <div class="url-bar group focus-within:shadow-md">
+                        <i class="fas fa-lock text-gray-500 text-xs mr-2"></i>
+                        <input type="text" class="flex-1 outline-none text-sm" value="https://en.wikipedia.org" onkeydown="if(event.key === 'Enter') document.getElementById('chrome-frame').src = this.value">
+                    </div>
+                    <div class="text-gray-500"><i class="fas fa-ellipsis-v"></i></div>
+                </div>
+                <div class="flex-1 bg-white relative">
+                    <iframe id="chrome-frame" src="https://en.m.wikipedia.org/wiki/Main_Page" class="w-full h-full border-none"></iframe>
+                </div>
+            `;
+            return container;
+        }
+
+        function createCalculatorApp() {
+            const container = document.createElement('div');
+            container.className = 'h-full flex flex-col bg-[#f3f3f3]';
+            
+            // Calculator State
+            let current = '0';
+            let prev = '';
+            let op = null;
+
+            // HTML Structure
+            container.innerHTML = `
+                <div class="h-10 text-xs p-2 text-gray-600 font-semibold">Standard</div>
+                <div class="h-24 p-4 text-right text-4xl font-semibold overflow-hidden" id="calc-display">0</div>
+                <div class="flex-1 p-1">
+                    <div class="calc-grid h-full">
+                        <div class="calc-btn" onclick="calcInput('C')">C</div>
+                        <div class="calc-btn" onclick="calcInput('CE')">CE</div>
+                        <div class="calc-btn" onclick="calcInput('DEL')"><i class="fas fa-backspace text-sm"></i></div>
+                        <div class="calc-btn" onclick="calcInput('/')">÷</div>
+
+                        <div class="calc-btn font-bold bg-white" onclick="calcInput(7)">7</div>
+                        <div class="calc-btn font-bold bg-white" onclick="calcInput(8)">8</div>
+                        <div class="calc-btn font-bold bg-white" onclick="calcInput(9)">9</div>
+                        <div class="calc-btn" onclick="calcInput('*')">×</div>
+
+                        <div class="calc-btn font-bold bg-white" onclick="calcInput(4)">4</div>
+                        <div class="calc-btn font-bold bg-white" onclick="calcInput(5)">5</div>
+                        <div class="calc-btn font-bold bg-white" onclick="calcInput(6)">6</div>
+                        <div class="calc-btn" onclick="calcInput('-')">-</div>
+
+                        <div class="calc-btn font-bold bg-white" onclick="calcInput(1)">1</div>
+                        <div class="calc-btn font-bold bg-white" onclick="calcInput(2)">2</div>
+                        <div class="calc-btn font-bold bg-white" onclick="calcInput(3)">3</div>
+                        <div class="calc-btn" onclick="calcInput('+')">+</div>
+
+                        <div class="calc-btn font-bold bg-white" onclick="calcInput('neg')">+/-</div>
+                        <div class="calc-btn font-bold bg-white" onclick="calcInput(0)">0</div>
+                        <div class="calc-btn font-bold bg-white" onclick="calcInput('.')">.</div>
+                        <div class="calc-btn accent" onclick="calcInput('=')">=</div>
+                    </div>
+                </div>
+            `;
+
+            // Logic Wrapper
+            window.calcInput = (val) => {
+                const display = container.querySelector('#calc-display');
+                
+                if (typeof val === 'number') {
+                    if (current === '0' || current === '-0') current = String(val);
+                    else current += val;
+                } else if (val === '.') {
+                    if (!current.includes('.')) current += '.';
+                } else if (val === 'C') {
+                    current = '0'; prev = ''; op = null;
+                } else if (val === 'CE') {
+                    current = '0';
+                } else if (val === 'DEL') {
+                    current = current.slice(0, -1) || '0';
+                } else if (val === 'neg') {
+                    current = String(parseFloat(current) * -1);
+                } else if (['+', '-', '*', '/'].includes(val)) {
+                    prev = current;
+                    current = '0';
+                    op = val;
+                } else if (val === '=') {
+                    if (op && prev) {
+                        try {
+                            const result = eval(`${prev} ${op} ${current}`);
+                            current = String(result);
+                            op = null; prev = '';
+                        } catch {
+                            current = 'Error';
+                        }
+                    }
+                }
+                
+                // Truncate for display
+                display.innerText = current.length > 12 ? current.substring(0, 12) : current;
+            };
+
+            return container;
+        }
+
+        // Boot
+        init();
+
+    </script>
+</body>
+</html>
